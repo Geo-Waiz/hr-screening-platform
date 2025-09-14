@@ -98,23 +98,9 @@ async function testRedisConnection() {
   }
 }
 
-async function startServer() {
-  // Start the HTTP server first
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔗 Database URL: ${process.env.DATABASE_URL}`);
-    console.log(`🔗 Redis URL: ${process.env.REDIS_URL}`);
-    
-    // Try connections but don't crash the server
-    connectDatabase().catch(err => {
-      console.log('Database connection failed, but server still running');
-    });
-    
-    connectRedis().catch(err => {
-      console.log('Redis connection failed, but server still running');
-    });
-  });
+
+    process.exit(1);
+  }
 }
 
 startServer();
