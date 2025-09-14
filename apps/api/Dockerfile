@@ -3,26 +3,18 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
-COPY apps/api/package.json ./apps/api/
+COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including dev dependencies)
+RUN npm install
 
-# Copy source code
-COPY apps/api ./apps/api
-
-# Build application
-WORKDIR /app/apps/api
-RUN npm run build
+# Copy all source code
+COPY . .
 
 # Generate Prisma client
-RUN npm run db:generate
+RUN npx prisma generate
 
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
-CMD ["npm", "start"]
+# Use ts-node to run TypeScript directly (no build needed)
+CMD ["npx", "ts-node", "src/index.ts"]
