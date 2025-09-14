@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -21,34 +21,42 @@ app.use(morgan('combined'));
 app.use(express.json());
 
 // Health check endpoint
-app.get('/health', async (req, res) => {
+app.get('/health', async (req: Request, res: Response) => {
+  let dbStatus = false;
+  let redisStatus = false;
+
   try {
-    // Test database connection
-    const dbStatus = await testDatabaseConnection();
-    const redisStatus = await testRedisConnection();
-    
-    res.json({ 
-      status: 'OK', 
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      services: {
-        database: dbStatus ? 'connected' : 'disconnected',
-        redis: redisStatus ? 'connected' : 'disconnected'
-      }
-    });
+    const { prisma } = await import('./lib/database');
+    await prisma.$connect();
+    dbStatus = true;
   } catch (error) {
-    res.status(500).json({
-      status: 'ERROR',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.log('Database check failed:', error instanceof Error ? error.message : 'Unknown error');
   }
+
+  try {
+    const { redis } = await import('./lib/redis');
+    await redis.ping();
+    redisStatus = true;
+  } catch (error) {
+    console.log('Redis check failed:', error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  res.json({ 
+    status: dbStatus && redisStatus ? 'OK' : 'PARTIAL',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    services: {
+      database: dbStatus ? 'connected' : 'disconnected',
+      redis: redisStatus ? 'connected' : 'disconnected'
+    }
+  });
 });
 
 // API Routes
 app.use('/api/auth', authRoutes);
 
 // Basic route
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
     message: 'HR Screening API is running!',
     version: '1.0.0',
@@ -60,7 +68,7 @@ app.get('/', (req, res) => {
 });
 
 // Error handling
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     error: 'Route not found',
     path: req.path
@@ -68,7 +76,7 @@ app.use((req, res) => {
 });
 
 // Global error handler
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', error);
   res.status(500).json({
     error: 'Internal server error',
