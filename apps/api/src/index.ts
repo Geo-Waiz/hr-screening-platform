@@ -7,8 +7,8 @@ import dotenv from 'dotenv';
 import { connectDatabase } from './lib/database';
 import { connectRedis } from './lib/redis';
 import authRoutes from './routes/auth.routes';
-import candidateRoutes from './routes/auth.routes';
-import { generalLimiter } from './middleware/rateLimiter.middleware':
+import candidateRoutes from './routes/candidate.routes';
+import { generalLimiter } from './middleware/rateLimiter.middleware';
 
 // Load environment variables
 dotenv.config();
@@ -16,11 +16,22 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://api.waiz.cl', 'https://waiz.cl'] 
+    : ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true
+}));
 app.use(morgan('combined'));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Apply general rate limiting
+app.use(generalLimiter);
 
 // Health check endpoint
 app.get('/health', async (req: Request, res: Response) => {
@@ -56,7 +67,7 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/candidates', candidateRouters);
+app.use('/api/candidates', candidateRoutes);
 
 // Basic route
 app.get('/', (req: Request, res: Response) => {
@@ -65,7 +76,7 @@ app.get('/', (req: Request, res: Response) => {
     version: '1.0.0',
     endpoints: {
       health: '/health',
-      auth: '/api/auth'
+      auth: '/api/auth',
       candidates: '/api/candidates'
     }
   });
@@ -74,8 +85,8 @@ app.get('/', (req: Request, res: Response) => {
 // Error handling
 app.use((req: Request, res: Response) => {
   res.status(404).json({
-    error: 'Route not found',
-    path: req.path
+    success: false,
+    error: { message: 'Route not found', path: req.path }
   });
 });
 
@@ -83,42 +94,20 @@ app.use((req: Request, res: Response) => {
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', error);
   res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    success: false,
+    error: { 
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' 
+    }
   });
 });
 
-async function testDatabaseConnection() {
-  try {
-    const { prisma } = await import('./lib/database');
-    await prisma.$connect();
-    return true;
-  } catch (error) {
-    console.error('Database connection test failed:', error);
-    return false;
-  }
-}
-
-async function testRedisConnection() {
-  try {
-    const { redis } = await import('./lib/redis');
-    await redis.ping();
-    return true;
-  } catch (error) {
-    console.error('Redis connection test failed:', error);
-    return false;
-  }
-}
-
 async function startServer() {
-  // Start the HTTP server first
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     console.log(`🔗 Database URL: ${process.env.DATABASE_URL}`);
     console.log(`🔗 Redis URL: ${process.env.REDIS_URL}`);
     
-    // Try connections but don't crash the server
     connectDatabase().catch(err => {
       console.log('Database connection failed, but server still running');
     });
