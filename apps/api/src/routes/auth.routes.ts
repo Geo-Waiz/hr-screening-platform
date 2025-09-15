@@ -1,13 +1,23 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../lib/database';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
-import { authLimiter } from '../middleware/rateLimiter.middleware';
-import { UserRole } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { z } from 'zod';
+//import { prisma } from '../lib/database';
+//import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
+//import { authLimiter } from '../middleware/rateLimiter.middleware';
+//import { UserRole } from '@prisma/client';
+//import jwt from 'jsonwebtoken';
+//import bcrypt from 'bcryptjs';
+//import { z } from 'zod';
 
 const router = Router();
+
+router.get('/test', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: 'Minimal auth routes working!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+export default router;
 
 // Validation schemas
 const createCompanySchema = z.object({
