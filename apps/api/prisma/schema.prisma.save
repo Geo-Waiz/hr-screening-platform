@@ -161,7 +161,7 @@ enum RiskLevel {
   CRITICAL
 }
 
-enum SocialPlatform {
+eDntform {
   LINKEDIN
   TWITTER
   FACEBOOK
