@@ -1,23 +1,39 @@
 import { Router, Request, Response } from 'express';
-import { AuthService } from '../services/auth.service';
 import { prisma } from '../lib/database';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
 import { authLimiter } from '../middleware/rateLimiter.middleware';
-import { 
-  registerSchema, 
-  loginSchema, 
-  refreshTokenSchema, 
-  createCompanySchema 
-} from '../validators/auth.validator';
 import { UserRole } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 
 const router = Router();
-const authService = new AuthService();
+
+// Validation schemas
+const createCompanySchema = z.object({
+  name: z.string().min(1, 'Company name is required').max(100, 'Company name too long'),
+  domain: z.string().min(1, 'Domain is required').max(100, 'Domain too long'),
+  adminEmail: z.string().email('Invalid email format'),
+  adminPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  adminFirstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+  adminLastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
 
 // Apply rate limiting to auth routes
 router.use(authLimiter);
 
-// Create company and admin user (for initial setup)
+// Create company and admin user
 router.post('/create-company', async (req: Request, res: Response) => {
   try {
     const validatedData = createCompanySchema.parse(req.body);
@@ -34,9 +50,21 @@ router.post('/create-company', async (req: Request, res: Response) => {
       });
     }
 
+    // Check if admin email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.adminEmail }
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'User with this email already exists' }
+      });
+    }
+
     // Create company and admin user in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create company
+      // Create company first
       const company = await tx.company.create({
         data: {
           name: validatedData.name,
@@ -44,79 +72,68 @@ router.post('/create-company', async (req: Request, res: Response) => {
         }
       });
 
-      // Register admin user
-      const adminUser = await authService.register({
-        email: validatedData.adminEmail,
-        password: validatedData.adminPassword,
-        firstName: validatedData.adminFirstName,
-        lastName: validatedData.adminLastName,
-        companyId: company.id,
-        role: UserRole.ADMIN,
+      // Hash password
+      const hashedPassword = await bcrypt.hash(validatedData.adminPassword, 12);
+
+      // Create admin user
+      const adminUser = await tx.user.create({
+        data: {
+          email: validatedData.adminEmail,
+          password: hashedPassword,
+          firstName: validatedData.adminFirstName,
+          lastName: validatedData.adminLastName,
+          companyId: company.id,
+          role: UserRole.ADMIN,
+        }
       });
 
       return { company, adminUser };
     });
+
+    // Generate tokens
+    const accessToken = jwt.sign(
+      {
+        userId: result.adminUser.id,
+        email: result.adminUser.email,
+        role: result.adminUser.role,
+        companyId: result.adminUser.companyId,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: result.adminUser.id },
+      process.env.JWT_REFRESH_SECRET!,
+      { expiresIn: '7d' }
+    );
+
+    // Store refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: result.adminUser.id,
+        expiresAt,
+      }
+    });
+
+    const { password, ...sanitizedUser } = result.adminUser;
 
     res.status(201).json({
       success: true,
       message: 'Company and admin user created successfully',
       data: {
         company: result.company,
-        user: result.adminUser.user,
-        accessToken: result.adminUser.accessToken,
-        refreshToken: result.adminUser.refreshToken,
+        user: sanitizedUser,
+        accessToken,
+        refreshToken,
       }
     });
   } catch (error) {
     console.error('Create company error:', error);
-    
-    if (error instanceof Error) {
-      return res.status(400).json({
-        success: false,
-        error: { message: error.message }
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: { message: 'Internal server error' }
-    });
-  }
-});
-
-// Register new user (requires existing company)
-router.post('/register', async (req: Request, res: Response) => {
-  try {
-    const validatedData = registerSchema.parse(req.body);
-    
-    // Verify company exists
-    const company = await prisma.company.findUnique({
-      where: { id: validatedData.companyId }
-    });
-    
-    if (!company || !company.isActive) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Invalid or inactive company' }
-      });
-    }
-
-    const result = await authService.register(validatedData);
-    
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: result
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    
-    if (error instanceof Error) {
-      return res.status(400).json({
-        success: false,
-        error: { message: error.message }
-      });
-    }
     
     res.status(500).json({
       success: false,
@@ -128,83 +145,96 @@ router.post('/register', async (req: Request, res: Response) => {
 // Login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const validatedData = loginSchema.parse(req.body);
-    const result = await authService.login(validatedData);
+    const { email, password } = loginSchema.parse(req.body);
+    
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            domain: true,
+            isActive: true,
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Invalid credentials' }
+      });
+    }
+
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Invalid credentials' }
+      });
+    }
+
+    // Check if user and company are active
+    if (!user.isActive || !user.company.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Account is deactivated' }
+      });
+    }
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
+    // Generate tokens
+    const accessToken = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_REFRESH_SECRET!,
+      { expiresIn: '7d' }
+    );
+
+    // Store refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt,
+      }
+    });
+
+    const { password: userPassword, ...sanitizedUser } = user;
     
     res.json({
       success: true,
       message: 'Login successful',
-      data: result
+      data: {
+        user: sanitizedUser,
+        accessToken,
+        refreshToken
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
-    
-    if (error instanceof Error) {
-      return res.status(401).json({
-        success: false,
-        error: { message: error.message }
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: { message: 'Internal server error' }
-    });
-  }
-});
-
-// Refresh token
-router.post('/refresh', async (req: Request, res: Response) => {
-  try {
-    const { refreshToken } = refreshTokenSchema.parse(req.body);
-    const result = await authService.refreshToken(refreshToken);
-    
-    res.json({
-      success: true,
-      message: 'Token refreshed successfully',
-      data: result
-    });
-  } catch (error) {
-    console.error('Refresh token error:', error);
-    
-    res.status(401).json({
-      success: false,
-      error: { message: 'Invalid refresh token' }
-    });
-  }
-});
-
-// Logout
-router.post('/logout', async (req: Request, res: Response) => {
-  try {
-    const { refreshToken } = refreshTokenSchema.parse(req.body);
-    await authService.logout(refreshToken);
-    
-    res.json({
-      success: true,
-      message: 'Logout successful'
-    });
-  } catch (error) {
-    console.error('Logout error:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: { message: 'Internal server error' }
-    });
-  }
-});
-
-// Logout from all devices
-router.post('/logout-all', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    await authService.logoutAll(req.user!.userId);
-    
-    res.json({
-      success: true,
-      message: 'Logged out from all devices successfully'
-    });
-  } catch (error) {
-    console.error('Logout all error:', error);
     
     res.status(500).json({
       success: false,
@@ -252,15 +282,12 @@ router.get('/profile', authenticate, async (req: AuthenticatedRequest, res: Resp
   }
 });
 
-// Test protected route
-router.get('/test-protected', authenticate, (req: AuthenticatedRequest, res: Response) => {
+// Test route
+router.get('/test', (req: Request, res: Response) => {
   res.json({
     success: true,
-    message: 'Protected route accessed successfully',
-    data: {
-      user: req.user,
-      timestamp: new Date().toISOString()
-    }
+    message: 'Auth routes working!',
+    timestamp: new Date().toISOString()
   });
 });
 
