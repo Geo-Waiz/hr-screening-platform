@@ -7,165 +7,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Company {
-  id          String   @id @default(uuid())
-  name        String
-  domain      String   @unique
-  settings    Json?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  users       User[]
-  candidates  Candidate[]
-  
-  @@map("companies")
-}
-
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  password    String
-  firstName   String
-  lastName    String
-  role        UserRole @default(RECRUITER)
-  isActive    Boolean  @default(true)
-  isVerified  Boolean  @default(false)
-  lastLogin   DateTime?
-  companyId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  screenings  Screening[]
-  refreshTokens RefreshToken[]
-  
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  password  String    @default("")
+  sessions  Session[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   @@map("users")
 }
 
-model RefreshToken {
-  id          String   @id @default(uuid())
-  token       String   @unique
-  userId      String
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  
-  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("refresh_tokens")
+model Session {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("sessions")
 }
 
-model Candidate {
-  id          String   @id @default(uuid())
-  firstName   String
-  lastName    String
-  email       String
-  phone       String?
-  position    String
-  consentGiven Boolean @default(false)
-  consentDate DateTime?
-  status      CandidateStatus @default(PENDING)
-  companyId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  screenings  Screening[]
-  socialProfiles SocialProfile[]
-  
-  @@map("candidates")
+model TestConnection {
+  id        String   @id @default(uuid())
+  message   String
+  createdAt DateTime @default(now())
 }
 
-model Screening {
-  id              String   @id @default(uuid())
-  candidateId     String
-  userId          String
-  status          ScreeningStatus @default(PENDING)
-  riskLevel       RiskLevel?
-  overallScore    Float?
-  findings        Json[]
-  report          Json?
-  completedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  user           User @relation(fields: [userId], references: [id])
-  socialAnalyses  SocialAnalysis[]
-  
-  @@map("screenings")
-}
-
-model SocialProfile {
-  id          String   @id @default(uuid())
-  candidateId String
-  platform    SocialPlatform
-  profileUrl  String
-  username    String?
-  isPublic    Boolean @default(true)
-  lastScanned DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  analyses    SocialAnalysis[]
-  
-  @@unique([candidateId, platform])
-  @@map("social_profiles")
-}
-
-model SocialAnalysis {
-  id              String   @id @default(uuid())
-  screeningId     String
-  profileId       String
-  contentAnalyzed Json
-  findings        Json[]
-  riskFlags       String[]
-  sentimentScore  Float?
-  confidence      Float?
-  analyzedAt      DateTime @default(now())
-  
-  screening       Screening @relation(fields: [screeningId], references: [id], onDelete: Cascade)
-  profile        SocialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  
-  @@map("social_analyses")
-}
-
-enum UserRole {
-  ADMIN
-  HR_MANAGER
-  RECRUITER
-  VIEWER
-}
-
-enum CandidateStatus {
-  PENDING
-  SCREENING
-  COMPLETED
-  APPROVED
-  REJECTED
-}
-
-enum ScreeningStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum RiskLevel {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum SocialPlatform {
-  LINKEDIN
-  TWITTER
-  FACEBOOK
-  INSTAGRAM
-  GITHUB
-  OTHER
-}
