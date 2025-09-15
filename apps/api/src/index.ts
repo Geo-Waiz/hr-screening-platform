@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { connectDatabase } from './lib/database';
 import { connectRedis } from './lib/redis';
 import authRoutes from './routes/auth.routes';
-import candidateRoutes from './routes/candidate.routes';
+//import candidateRoutes from './routes/candidate.routes';
 import { generalLimiter } from './middleware/rateLimiter.middleware';
 
 // Load environment variables
@@ -67,7 +67,7 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/candidates', candidateRoutes);
+//app.use('/api/candidates', candidateRoutes);
 
 // Basic route
 app.get('/', (req: Request, res: Response) => {
@@ -77,7 +77,6 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       health: '/health',
       auth: '/api/auth',
-      candidates: '/api/candidates'
     }
   });
 });
