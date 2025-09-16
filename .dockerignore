@@ -1,0 +1,20 @@
+# Ignore git
+.git
+.gitignore
+
+# Ignore node artifacts
+node_modules
+**/node_modules
+dist
+**/dist
+*.log
+
+# Ignore lock files (handled in sub-packages only)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Ignore local env files
+.env
+.env.*
+!apps/**/.env.example
