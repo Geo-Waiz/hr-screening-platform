@@ -1,0 +1,43 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(helmet());
+app.use(cors());
+app.use(morgan('combined'));
+app.use(express.json());
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
+app.get('/', (req, res) => {
+  res.json({
+    message: 'HR Screening API is running!',
+    version: '2.0.0',
+    endpoints: {
+      health: '/health'
+    }
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: { message: 'Route not found' }
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+});
