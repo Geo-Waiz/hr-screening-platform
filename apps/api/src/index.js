@@ -12,6 +12,14 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
 
+// Import auth routes (will be available after creating the file)
+try {
+  const authRoutes = require('./routes/auth');
+  app.use('/api/auth', authRoutes);
+} catch (error) {
+  console.log('Auth routes not available yet');
+}
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -52,7 +60,11 @@ app.get('/', (req, res) => {
     version: '2.0.0',
     endpoints: {
       health: '/health',
-      models: '/api/models'
+      models: '/api/models',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login'
+      }
     }
   });
 });
