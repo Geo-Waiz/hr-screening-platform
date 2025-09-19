@@ -20,12 +20,39 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/api/models', async (req, res) => {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const companyCount = await prisma.company.count();
+    const userCount = await prisma.user.count();
+    const candidateCount = await prisma.candidate.count();
+    
+    res.json({
+      success: true,
+      tables: {
+        companies: companyCount,
+        users: userCount,
+        candidates: candidateCount
+      },
+      message: 'Database schema is working'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({
     message: 'HR Screening API is running!',
     version: '2.0.0',
     endpoints: {
-      health: '/health'
+      health: '/health',
+      models: '/api/models'
     }
   });
 });
