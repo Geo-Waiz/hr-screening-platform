@@ -20,7 +20,7 @@ try {
   app.use('/api/auth', authRoutes);
   app.use('/api/candidates', candidateRoutes);
 } catch (error) {
-  console.log('Some routes not available yet:', error.message);
+  console.log('Route loading error:', error);
 }
 
 app.get('/health', (req, res) => {
