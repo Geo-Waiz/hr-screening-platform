@@ -13,32 +13,21 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
 
-// Import routes with debugging
+// Import routes
 try {
-  console.log('=== Route Loading Debug ===');
-  console.log('Current working directory:', process.cwd());
-  console.log('Routes directory exists:', fs.existsSync('./routes'));
-  console.log('Auth routes exists:', fs.existsSync('./routes/auth.js'));
-  console.log('Candidates routes exists:', fs.existsSync('./routes/candidates.js'));
-  console.log('Social profiles routes exists:', fs.existsSync('./routes/socialProfiles.js'));
-  
   const authRoutes = require('./routes/auth');
-  console.log('Auth routes loaded successfully');
-  
   const candidateRoutes = require('./routes/candidates');
-  console.log('Candidate routes loaded successfully');
-  
   const socialProfileRoutes = require('./routes/socialProfiles');
-  console.log('Social profile routes loaded successfully');
+  const screeningRoutes = require('./routes/screenings');
   
   app.use('/api/auth', authRoutes);
   app.use('/api/candidates', candidateRoutes);
   app.use('/api/social-profiles', socialProfileRoutes);
+  app.use('/api/screenings', screeningRoutes);
   
-  console.log('All routes registered successfully');
+  console.log('All routes loaded successfully');
 } catch (error) {
   console.log('Route loading error:', error);
-  console.log('Error stack:', error.stack);
 }
 
 app.get('/health', (req, res) => {
@@ -58,6 +47,7 @@ app.get('/api/models', async (req, res) => {
     const userCount = await prisma.user.count();
     const candidateCount = await prisma.candidate.count();
     const socialProfileCount = await prisma.socialProfile.count();
+    const screeningCount = await prisma.screening.count();
     
     res.json({
       success: true,
@@ -65,7 +55,8 @@ app.get('/api/models', async (req, res) => {
         companies: companyCount,
         users: userCount,
         candidates: candidateCount,
-        socialProfiles: socialProfileCount
+        socialProfiles: socialProfileCount,
+        screenings: screeningCount
       },
       message: 'Database schema is working'
     });
@@ -100,6 +91,11 @@ app.get('/', (req, res) => {
         create: 'POST /api/social-profiles/candidate/:candidateId',
         update: 'PUT /api/social-profiles/:profileId',
         delete: 'DELETE /api/social-profiles/:profileId'
+      },
+      screenings: {
+        analyze: 'POST /api/screenings/candidate/:candidateId/analyze',
+        getForCandidate: 'GET /api/screenings/candidate/:candidateId',
+        getDetails: 'GET /api/screenings/:screeningId'
       }
     }
   });
