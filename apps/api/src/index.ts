@@ -34,7 +34,33 @@ app.get('/', (req: Request, res: Response) => {
     }
   });
 });
-
+// Test endpoint to verify database schema
+app.get('/api/models', async (req: Request, res: Response) => {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    // Try to query each table to confirm they exist
+    const companyCount = await prisma.company.count();
+    const userCount = await prisma.user.count();
+    const candidateCount = await prisma.candidate.count();
+    
+    res.json({
+      success: true,
+      tables: {
+        companies: companyCount,
+        users: userCount,
+        candidates: candidateCount
+      },
+      message: 'Database schema is working'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 // Error handling
 app.use((req: Request, res: Response) => {
   res.status(404).json({
