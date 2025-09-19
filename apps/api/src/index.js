@@ -12,12 +12,15 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
 
-// Import auth routes (will be available after creating the file)
+// Import routes
 try {
   const authRoutes = require('./routes/auth');
+  const candidateRoutes = require('./routes/candidates');
+  
   app.use('/api/auth', authRoutes);
+  app.use('/api/candidates', candidateRoutes);
 } catch (error) {
-  console.log('Auth routes not available yet');
+  console.log('Some routes not available yet:', error.message);
 }
 
 app.get('/health', (req, res) => {
@@ -64,6 +67,13 @@ app.get('/', (req, res) => {
       auth: {
         register: 'POST /api/auth/register',
         login: 'POST /api/auth/login'
+      },
+      candidates: {
+        list: 'GET /api/candidates',
+        create: 'POST /api/candidates',
+        get: 'GET /api/candidates/:id',
+        update: 'PUT /api/candidates/:id',
+        delete: 'DELETE /api/candidates/:id'
       }
     }
   });
