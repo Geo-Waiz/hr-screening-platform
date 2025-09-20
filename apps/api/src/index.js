@@ -33,10 +33,10 @@ try {
   const socialProfileRoutes = require('./routes/socialProfiles');
   const screeningRoutes = require('./routes/screenings');
   
-  app.use('/api/auth', authRoutes);
-  app.use('/api/candidates', candidateRoutes);
-  app.use('/api/social-profiles', socialProfileRoutes);
-  app.use('/api/screenings', screeningRoutes);
+  app.use('/auth', authRoutes);
+  app.use('/candidates', candidateRoutes);
+  app.use('/social-profiles', socialProfileRoutes);
+  app.use('/screenings', screeningRoutes);
   
   console.log('All routes loaded successfully');
 } catch (error) {
@@ -89,26 +89,26 @@ app.get('/', (req, res) => {
       health: '/health',
       models: '/api/models',
       auth: {
-        register: 'POST /api/auth/register',
-        login: 'POST /api/auth/login'
+        register: 'POST /auth/register',
+        login: 'POST /auth/login'
       },
       candidates: {
-        list: 'GET /api/candidates',
-        create: 'POST /api/candidates',
-        get: 'GET /api/candidates/:id',
-        update: 'PUT /api/candidates/:id',
-        delete: 'DELETE /api/candidates/:id'
+        list: 'GET /candidates',
+        create: 'POST /candidates',
+        get: 'GET /candidates/:id',
+        update: 'PUT /candidates/:id',
+        delete: 'DELETE /candidates/:id'
       },
       socialProfiles: {
-        getForCandidate: 'GET /api/social-profiles/candidate/:candidateId',
-        create: 'POST /api/social-profiles/candidate/:candidateId',
-        update: 'PUT /api/social-profiles/:profileId',
-        delete: 'DELETE /api/social-profiles/:profileId'
+        getForCandidate: 'GET /social-profiles/candidate/:candidateId',
+        create: 'POST /social-profiles/candidate/:candidateId',
+        update: 'PUT /social-profiles/:profileId',
+        delete: 'DELETE /social-profiles/:profileId'
       },
       screenings: {
-        analyze: 'POST /api/screenings/candidate/:candidateId/analyze',
-        getForCandidate: 'GET /api/screenings/candidate/:candidateId',
-        getDetails: 'GET /api/screenings/:screeningId'
+        analyze: 'POST /screenings/candidate/:candidateId/analyze',
+        getForCandidate: 'GET /screenings/candidate/:candidateId',
+        getDetails: 'GET /screenings/:screeningId'
       }
     }
   });
