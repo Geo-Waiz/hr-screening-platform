@@ -97,3 +97,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+// CORS fix deployed Fri Sep 19 22:56:51 -03 2025
