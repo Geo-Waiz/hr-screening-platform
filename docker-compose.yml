@@ -16,6 +16,36 @@ services:
     networks:
       - dokploy-network
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: hr-screening-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    labels:
+      - "traefik.enable=true"
+      
+      # CORS middleware configuration
+      - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
+      - "traefik.http.middlewares.cors-headers.headers.accesscontrolalloworiginlist=https://app.waiz.cl"
+      - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowheaders=Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control"
+      - "traefik.http.middlewares.cors-headers.headers.addvaryheader=true"
+      
+      # API router configuration with CORS
+      - "traefik.http.routers.hr-api.rule=Host(\`api.waiz.cl\`)"
+      - "traefik.http.routers.hr-api.entrypoints=websecure"
+      - "traefik.http.routers.hr-api.tls=true"
+      - "traefik.http.routers.hr-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hr-api.middlewares=cors-headers"
+      - "traefik.http.services.hr-api.loadbalancer.server.port=3000"
+      - "traefik.docker.network=dokploy-network"
+    networks:
+      - dokploy-network
+
 networks:
   dokploy-network:
     external: true
