@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import CandidatesPage from './pages/CandidatesPage';
+import AddCandidatePage from './pages/AddCandidatePage';
 
 const theme = createTheme({
   palette: {
@@ -49,6 +50,12 @@ const AppRoutes: React.FC = () => {
       <Route path="/candidates" element={
         <ProtectedRoute>
           <CandidatesPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/candidates/add" element={
+        <ProtectedRoute>
+          <AddCandidatePage />
         </ProtectedRoute>
       } />
     </Routes>
