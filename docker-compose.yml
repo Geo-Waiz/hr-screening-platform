@@ -2,11 +2,9 @@ version: '3.8'
 
 services:
   frontend:
-    build: ./apps/frontend
+    build: .
     container_name: hr-screening-frontend
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.hr-frontend.rule=Host(\`app.waiz.cl\`)"
