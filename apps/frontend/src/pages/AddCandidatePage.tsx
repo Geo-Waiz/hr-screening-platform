@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Container,
-  Paper,
-  Typography,
-  Box,
-  TextField,
-  Button,
-  Grid,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
-import { ArrowBack, Person } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
 
 const AddCandidatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,10 +18,7 @@ const AddCandidatePage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,13 +27,26 @@ const AddCandidatePage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Token available:', !!token);
-      const response = await api.post('/candidates', formData);
-      console.log('Candidate created:', response.data);
-      navigate('/candidates');
+      const response = await fetch('https://api.waiz.cl/candidates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('Candidate created:', data);
+        navigate('/dashboard');
+      } else {
+        throw new Error(data.message || 'Failed to create candidate');
+      }
     } catch (error: any) {
       console.error('Error:', error);
-      setError(error.response?.data?.message || 'Failed to create candidate');
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -57,103 +54,102 @@ const AddCandidatePage: React.FC = () => {
 
   if (!user || !token) {
     return (
-      <Container maxWidth="md">
-        <Alert severity="error">
-          Please log in to access this page.
-        </Alert>
-      </Container>
+      <div style={{ padding: '20px' }}>
+        <div style={{ color: 'red' }}>Please log in to access this page.</div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/dashboard')}
-          sx={{ mb: 2 }}
-        >
-          Back to Dashboard
-        </Button>
+    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+      <button onClick={() => navigate('/dashboard')} style={{ marginBottom: '20px' }}>
+        ← Back to Dashboard
+      </button>
+      
+      <h1>Add New Candidate</h1>
+
+      {error && (
+        <div style={{ color: 'red', marginBottom: '20px', padding: '10px', border: '1px solid red' }}>
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div>
+          <label>First Name *</label>
+          <input
+            type="text"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleInputChange}
+            required
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          />
+        </div>
         
-        <Typography variant="h4" gutterBottom>
-          Add New Candidate
-        </Typography>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="First Name"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Last Name"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Position"
-                  name="position"
-                  value={formData.position}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : <Person />}
-                >
-                  {loading ? 'Creating...' : 'Create Candidate'}
-                </Button>
-              </Grid>
-            </Grid>
-          </form>
-        </Paper>
-      </Box>
-    </Container>
+        <div>
+          <label>Last Name *</label>
+          <input
+            type="text"
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleInputChange}
+            required
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          />
+        </div>
+        
+        <div>
+          <label>Email *</label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          />
+        </div>
+        
+        <div>
+          <label>Phone</label>
+          <input
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          />
+        </div>
+        
+        <div>
+          <label>Position *</label>
+          <input
+            type="text"
+            name="position"
+            value={formData.position}
+            onChange={handleInputChange}
+            required
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          />
+        </div>
+        
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{ 
+            padding: '12px 24px', 
+            backgroundColor: loading ? '#ccc' : '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading ? 'Creating...' : 'Create Candidate'}
+        </button>
+      </form>
+    </div>
   );
 };
 
