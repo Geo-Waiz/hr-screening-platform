@@ -1,49 +1,23 @@
+version: '3.8'
+
 services:
-  postgres:
-    image: postgres:15
-    container_name: hr-postgres
-    restart: always
+  frontend:
+    build: ./apps/frontend
+    container_name: hr-screening-frontend
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: hruser
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: hr_screening
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - dokploy-network
-
-  redis:
-    image: redis:7
-    container_name: hr-redis
-    restart: always
-    networks:
-      - dokploy-network
-
-  api:
-    build: ./apps/api
-    container_name: hr-api
-    restart: always
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      DATABASE_URL: postgresql://hruser:${POSTGRES_PASSWORD}@postgres:5432/hr_screening
-      REDIS_URL: redis://redis:6379/0
-      PORT: 8000
-    networks:
-      - dokploy-network
+      - NODE_ENV=production
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.hr-frontend.rule=Host(\`app.waiz.cl\`)"
+      - "traefik.http.routers.hr-frontend.entrypoints=websecure"
+      - "traefik.http.routers.hr-frontend.tls=true"
+      - "traefik.http.routers.hr-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.hr-frontend.loadbalancer.server.port=80"
       - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.hrscreening-api.rule=Host(`api.waiz.cl`)"
-      - "traefik.http.routers.hrscreening-api.entrypoints=websecure"
-      - "traefik.http.routers.hrscreening-api.tls=true"
-      - "traefik.http.routers.hrscreening-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.hrscreening-api.loadbalancer.server.port=8000"
+    networks:
+      - dokploy-network
 
 networks:
   dokploy-network:
     external: true
-
-volumes:
-  postgres_data:
