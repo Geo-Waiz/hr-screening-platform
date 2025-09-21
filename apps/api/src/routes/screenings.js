@@ -1,64 +1,72 @@
-const express = require('express');
-const { PrismaClient } = require('@prisma/client');
-const { authenticateToken } = require('../middleware/auth');
+const express = require("express")
+const { PrismaClient } = require("@prisma/client")
+const { authenticateToken } = require("../middleware/auth")
+const AIAnalysisService = require("../services/aiAnalysisService")
+const NotificationService = require("../services/notificationService")
 
-const router = express.Router();
-const prisma = new PrismaClient();
+const router = express.Router()
+const prisma = new PrismaClient()
 
-router.use(authenticateToken);
+router.use(authenticateToken)
 
 // Start screening analysis for a candidate
-router.post('/candidate/:candidateId/analyze', async (req, res) => {
+router.post("/candidate/:candidateId/analyze", async (req, res) => {
+  let screening
   try {
     // Verify candidate belongs to the authenticated company
     const candidate = await prisma.candidate.findFirst({
       where: {
         id: req.params.candidateId,
-        companyId: req.companyId
+        companyId: req.companyId,
       },
       include: {
         socialProfiles: {
-          where: { isActive: true }
-        }
-      }
-    });
+          where: { isActive: true },
+        },
+      },
+    })
 
     if (!candidate) {
       return res.status(404).json({
         success: false,
-        error: 'Candidate not found'
-      });
+        error: "Candidate not found",
+      })
     }
 
     if (candidate.socialProfiles.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'No active social profiles found for this candidate'
-      });
+        error: "No active social profiles found for this candidate",
+      })
     }
 
     // Create new screening record
-    const screening = await prisma.screening.create({
+    screening = await prisma.screening.create({
       data: {
         candidateId: req.params.candidateId,
-        status: 'IN_PROGRESS'
-      }
-    });
+        status: "IN_PROGRESS",
+      },
+    })
 
-    // Simulate AI analysis (in production, this would be async processing)
-    const analysisResults = await performAIAnalysis(candidate.socialProfiles);
+    const aiService = new AIAnalysisService()
+    const analysisResults = await aiService.performBulkAnalysis(candidate.socialProfiles, {
+      firstName: candidate.firstName,
+      lastName: candidate.lastName,
+      email: candidate.email,
+      position: candidate.position,
+    })
 
     // Update screening with results
     const completedScreening = await prisma.screening.update({
       where: { id: screening.id },
       data: {
-        status: 'COMPLETED',
+        status: "COMPLETED",
         riskLevel: analysisResults.riskLevel,
         overallScore: analysisResults.overallScore,
         summary: analysisResults.summary,
         findings: analysisResults.findings,
         aiAnalysis: analysisResults.aiAnalysis,
-        completedAt: new Date()
+        completedAt: new Date(),
       },
       include: {
         candidate: {
@@ -66,207 +74,220 @@ router.post('/candidate/:candidateId/analyze', async (req, res) => {
             firstName: true,
             lastName: true,
             email: true,
-            position: true
-          }
-        }
-      }
-    });
+            position: true,
+          },
+        },
+      },
+    })
 
     // Update social profiles with last scanned timestamp
     await prisma.socialProfile.updateMany({
       where: {
         candidateId: req.params.candidateId,
-        isActive: true
+        isActive: true,
       },
       data: {
-        lastScanned: new Date()
+        lastScanned: new Date(),
+      },
+    })
+
+    const io = req.app.get("io")
+    if (io) {
+      const notificationService = new NotificationService(io)
+
+      // Find company users to notify
+      const companyUsers = await prisma.user.findMany({
+        where: { companyId: req.companyId },
+        select: { id: true },
+      })
+
+      // Send notifications to all company users
+      for (const user of companyUsers) {
+        await notificationService.createNotification({
+          userId: user.id,
+          title: "Screening Completed",
+          message: `AI screening completed for ${candidate.firstName} ${candidate.lastName}. Risk level: ${analysisResults.riskLevel}`,
+          type: "SCREENING_COMPLETED",
+          priority:
+            analysisResults.riskLevel === "CRITICAL"
+              ? "URGENT"
+              : analysisResults.riskLevel === "HIGH"
+                ? "HIGH"
+                : "MEDIUM",
+          candidateId: candidate.id,
+          screeningId: screening.id,
+        })
       }
-    });
+    }
 
     res.status(201).json({
       success: true,
-      data: completedScreening
-    });
+      data: completedScreening,
+    })
   } catch (error) {
-    console.error('Screening analysis error:', error);
+    console.error("Screening analysis error:", error)
+
+    // Update screening status to failed
+    if (screening?.id) {
+      await prisma.screening.update({
+        where: { id: screening.id },
+        data: { status: "FAILED" },
+      })
+    }
+
     res.status(500).json({
       success: false,
-      error: 'Failed to perform screening analysis'
-    });
+      error: "Failed to perform screening analysis",
+    })
   }
-});
+})
 
 // Get screening results for a candidate
-router.get('/candidate/:candidateId', async (req, res) => {
+router.get("/candidate/:candidateId", async (req, res) => {
   try {
     const candidate = await prisma.candidate.findFirst({
       where: {
         id: req.params.candidateId,
-        companyId: req.companyId
-      }
-    });
+        companyId: req.companyId,
+      },
+    })
 
     if (!candidate) {
       return res.status(404).json({
         success: false,
-        error: 'Candidate not found'
-      });
+        error: "Candidate not found",
+      })
     }
 
     const screenings = await prisma.screening.findMany({
       where: { candidateId: req.params.candidateId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         candidate: {
           select: {
             firstName: true,
             lastName: true,
             email: true,
-            position: true
-          }
-        }
-      }
-    });
+            position: true,
+          },
+        },
+      },
+    })
 
     res.json({
       success: true,
-      data: screenings
-    });
+      data: screenings,
+    })
   } catch (error) {
-    console.error('Get screenings error:', error);
+    console.error("Get screenings error:", error)
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve screenings'
-    });
+      error: "Failed to retrieve screenings",
+    })
   }
-});
+})
 
 // Get specific screening details
-router.get('/:screeningId', async (req, res) => {
+router.get("/:screeningId", async (req, res) => {
   try {
     const screening = await prisma.screening.findFirst({
       where: {
         id: req.params.screeningId,
         candidate: {
-          companyId: req.companyId
-        }
+          companyId: req.companyId,
+        },
       },
       include: {
         candidate: {
           include: {
-            socialProfiles: true
-          }
-        }
-      }
-    });
+            socialProfiles: true,
+          },
+        },
+      },
+    })
 
     if (!screening) {
       return res.status(404).json({
         success: false,
-        error: 'Screening not found'
-      });
+        error: "Screening not found",
+      })
     }
 
     res.json({
       success: true,
-      data: screening
-    });
+      data: screening,
+    })
   } catch (error) {
-    console.error('Get screening error:', error);
+    console.error("Get screening error:", error)
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve screening'
-    });
+      error: "Failed to retrieve screening",
+    })
   }
-});
+})
 
-// AI Analysis simulation function
-async function performAIAnalysis(socialProfiles) {
-  // Simulate processing time
-  await new Promise(resolve => setTimeout(resolve, 1000));
+// Generate detailed AI report for a screening
+router.post("/:screeningId/generate-report", async (req, res) => {
+  try {
+    const screening = await prisma.screening.findFirst({
+      where: {
+        id: req.params.screeningId,
+        candidate: {
+          companyId: req.companyId,
+        },
+      },
+      include: {
+        candidate: true,
+      },
+    })
 
-  // Mock AI analysis results based on profile data
-  const findings = [];
-  let riskScore = 0;
-  const platforms = socialProfiles.map(p => p.platform);
+    if (!screening) {
+      return res.status(404).json({
+        success: false,
+        error: "Screening not found",
+      })
+    }
 
-  // Platform-specific analysis
-  for (const profile of socialProfiles) {
-    const platformAnalysis = {
-      platform: profile.platform,
-      profileUrl: profile.profileUrl,
-      username: profile.username,
-      contentAnalysis: generateContentAnalysis(profile.platform),
-      riskFactors: generateRiskFactors(profile.platform),
-      professionalScore: Math.floor(Math.random() * 40) + 60 // 60-100
-    };
+    if (screening.status !== "COMPLETED") {
+      return res.status(400).json({
+        success: false,
+        error: "Screening must be completed before generating report",
+      })
+    }
 
-    findings.push(platformAnalysis);
-    riskScore += calculateRiskScore(platformAnalysis);
+    const aiService = new AIAnalysisService()
+    const detailedReport = await aiService.generateDetailedReport(screening.id, screening.candidate, {
+      overallScore: screening.overallScore,
+      riskLevel: screening.riskLevel,
+      findings: screening.findings,
+    })
+
+    // Store the report in the database
+    const updatedScreening = await prisma.screening.update({
+      where: { id: screening.id },
+      data: {
+        humanReview: detailedReport.reportContent,
+      },
+    })
+
+    res.json({
+      success: true,
+      data: {
+        report: detailedReport.reportContent,
+        generatedAt: detailedReport.generatedAt,
+        metadata: {
+          model: detailedReport.model,
+          tokensUsed: detailedReport.tokensUsed,
+        },
+      },
+    })
+  } catch (error) {
+    console.error("Report generation error:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate detailed report",
+    })
   }
+})
 
-  const avgRiskScore = Math.floor(riskScore / socialProfiles.length);
-  const riskLevel = avgRiskScore >= 80 ? 'LOW' : avgRiskScore >= 60 ? 'MEDIUM' : avgRiskScore >= 40 ? 'HIGH' : 'CRITICAL';
-
-  return {
-    riskLevel,
-    overallScore: avgRiskScore,
-    summary: generateSummary(platforms, riskLevel, avgRiskScore),
-    findings: { platforms: findings },
-    aiAnalysis: {
-      processingTime: '2.3 seconds',
-      profilesAnalyzed: socialProfiles.length,
-      algorithmsUsed: ['content_classification', 'sentiment_analysis', 'risk_assessment'],
-      confidenceLevel: Math.floor(Math.random() * 20) + 80 // 80-100%
-    }
-  };
-}
-
-function generateContentAnalysis(platform) {
-  const analyses = {
-    LINKEDIN: {
-      professionalContent: 85,
-      networkQuality: 78,
-      endorsements: 12,
-      inappropriateContent: 0
-    },
-    TWITTER: {
-      politicalContent: 15,
-      professionalContent: 70,
-      negativeLanguage: 5,
-      inappropriateContent: 2
-    },
-    FACEBOOK: {
-      personalContent: 90,
-      professionalContent: 30,
-      privacySettings: 'restricted',
-      inappropriateContent: 1
-    }
-  };
-
-  return analyses[platform] || {
-    professionalContent: Math.floor(Math.random() * 40) + 50,
-    inappropriateContent: Math.floor(Math.random() * 10)
-  };
-}
-
-function generateRiskFactors(platform) {
-  const riskFactors = {
-    LINKEDIN: ['No concerning content detected', 'Professional network verified'],
-    TWITTER: ['Occasional political commentary', 'Generally professional tone'],
-    FACEBOOK: ['Limited public content', 'Privacy settings appropriate']
-  };
-
-  return riskFactors[platform] || ['Standard profile analysis completed'];
-}
-
-function calculateRiskScore(analysis) {
-  return analysis.professionalScore;
-}
-
-function generateSummary(platforms, riskLevel, score) {
-  const platformText = platforms.join(', ');
-  return `Comprehensive analysis of ${platforms.length} social media profiles (${platformText}) completed. Overall risk level: ${riskLevel} (${score}/100). Candidate demonstrates appropriate professional online presence with minimal risk factors identified.`;
-}
-
-module.exports = router;
+module.exports = router

@@ -1,88 +1,86 @@
 version: '3.8'
 
 services:
-  frontend:
-    build: .
-    container_name: hr-screening-frontend
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hr-frontend.rule=Host(`app.waiz.cl`)"
-      - "traefik.http.routers.hr-frontend.entrypoints=websecure"
-      - "traefik.http.routers.hr-frontend.tls=true"
-      - "traefik.http.routers.hr-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.hr-frontend.loadbalancer.server.port=80"
-      - "traefik.docker.network=dokploy-network"
-    networks:
-      - dokploy-network
-
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: hr-postgres
+    container_name: hr-screening-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hr_screening
+      POSTGRES_USER: hruser
+      POSTGRES_PASSWORD: Endemia24.,,.
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
-      - dokploy-network
+      - hr-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hruser -d hr_screening"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: hr-redis
+    container_name: hr-screening-redis
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - dokploy-network
+      - hr-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # API Backend
   api:
-    image: node:18
-    container_name: hr-api
-    working_dir: /app
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: hr-screening-api
     environment:
-      NODE_ENV: ${NODE_ENV}
-      PORT: ${PORT}
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-    env_file: .env
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://hruser:Endemia24.,,.@postgres:5432/hr_screening
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-hr-screening-prod-jwt-2024-change-this-to-strong-random-64-char-string}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    ports:
+      - "3000:3000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
-      - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hr-api.rule=Host(`api.waiz.cl`)"
-      - "traefik.http.routers.hr-api.entrypoints=websecure"
-      - "traefik.http.routers.hr-api.tls=true"
-      - "traefik.http.routers.hr-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.hr-api.loadbalancer.server.port=3000"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
-      - "traefik.http.middlewares.cors-headers.headers.accesscontrolalloworiginlist=https://app.waiz.cl"
-      - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowcredentials=true"
-      - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowheaders=Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control"
-      - "traefik.http.middlewares.cors-headers.headers.addvaryheader=true"
-      - "traefik.http.routers.hr-api.middlewares=cors-headers"
-    entrypoint: >
-      sh -c "
-        apt-get update -qq &&
-        apt-get install -y -qq git &&
-        git clone --depth 1 https://github.com/Geo-Waiz/hr-screening-platform.git /tmp/repo &&
-        cp -r /tmp/repo/apps/api/* /app/ &&
-        npm install --production &&
-        npx prisma generate &&
-        npx prisma migrate deploy &&
-        node src/index.js
-      "
+      - hr-network
+    restart: unless-stopped
+
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hr-screening-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:3000
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - hr-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  dokploy-network:
-    external: true
+  hr-network:
+    driver: bridge

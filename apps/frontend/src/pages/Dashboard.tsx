@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+"use client"
+
+import React, { useState, useEffect } from "react"
 import {
   Container,
   Paper,
@@ -19,8 +21,11 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider
-} from '@mui/material';
+  Divider,
+  Alert,
+  AlertTitle,
+  Grid,
+} from "@mui/material"
 import {
   AccountCircle,
   Logout,
@@ -32,137 +37,208 @@ import {
   Add,
   Search,
   Group,
-  TrendingUp
-} from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+  Security,
+  SmartToy,
+  Speed,
+  Shield,
+  Settings,
+  AdminPanelSettings,
+} from "@mui/icons-material"
+import { useAuth } from "../contexts/AuthContext"
+import { useNavigate } from "react-router-dom"
 
 interface DashboardStats {
-  totalCandidates: number;
-  pendingScreenings: number;
-  completedScreenings: number;
-  flaggedProfiles: number;
+  totalCandidates: number
+  pendingScreenings: number
+  completedScreenings: number
+  flaggedProfiles: number
+  securityScore: number
+  activeThreats: number
+  aiInsights: number
+  automatedScreenings: number
 }
 
 interface RecentActivity {
-  id: string;
-  type: 'screening_completed' | 'profile_flagged' | 'candidate_added';
-  candidateName: string;
-  timestamp: Date;
-  status: 'completed' | 'pending' | 'flagged';
+  id: string
+  type:
+    | "screening_completed"
+    | "profile_flagged"
+    | "candidate_added"
+    | "security_alert"
+    | "ai_insight"
+    | "bulk_operation"
+  candidateName?: string
+  message: string
+  timestamp: Date
+  status: "completed" | "pending" | "flagged" | "warning" | "info" | "success"
+}
+
+interface SecurityAlert {
+  id: string
+  type: "high" | "medium" | "low"
+  title: string
+  description: string
+  timestamp: Date
+  resolved: boolean
 }
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [stats, setStats] = useState<DashboardStats>({
     totalCandidates: 0,
     pendingScreenings: 0,
     completedScreenings: 0,
-    flaggedProfiles: 0
-  });
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+    flaggedProfiles: 0,
+    securityScore: 0,
+    activeThreats: 0,
+    aiInsights: 0,
+    automatedScreenings: 0,
+  })
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      setIsLoading(true);
+      setIsLoading(true)
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
         setStats({
-          totalCandidates: 156,
+          totalCandidates: 1247,
           pendingScreenings: 23,
-          completedScreenings: 133,
-          flaggedProfiles: 8
-        });
+          completedScreenings: 1224,
+          flaggedProfiles: 15,
+          securityScore: 85,
+          activeThreats: 2,
+          aiInsights: 156,
+          automatedScreenings: 892,
+        })
 
         setRecentActivity([
           {
-            id: '1',
-            type: 'screening_completed',
-            candidateName: 'John Doe',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-            status: 'completed'
+            id: "1",
+            type: "screening_completed",
+            candidateName: "John Smith",
+            message: "AI screening completed for John Smith",
+            timestamp: new Date(Date.now() - 10 * 60 * 1000),
+            status: "success",
           },
           {
-            id: '2',
-            type: 'profile_flagged',
-            candidateName: 'Jane Smith',
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-            status: 'flagged'
+            id: "2",
+            type: "security_alert",
+            message: "Multiple failed login attempts detected",
+            timestamp: new Date(Date.now() - 25 * 60 * 1000),
+            status: "warning",
           },
           {
-            id: '3',
-            type: 'candidate_added',
-            candidateName: 'Mike Johnson',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-            status: 'pending'
-          }
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+            id: "3",
+            type: "ai_insight",
+            message: "AI identified 5 high-potential candidates",
+            timestamp: new Date(Date.now() - 35 * 60 * 1000),
+            status: "info",
+          },
+          {
+            id: "4",
+            type: "bulk_operation",
+            message: "Bulk screening initiated for 50 candidates",
+            timestamp: new Date(Date.now() - 45 * 60 * 1000),
+            status: "info",
+          },
+        ])
 
-    fetchDashboardData();
-  }, []);
+        setSecurityAlerts([
+          {
+            id: "1",
+            type: "high",
+            title: "Suspicious Login Activity",
+            description: "Multiple failed login attempts from unknown IP addresses",
+            timestamp: new Date(Date.now() - 30 * 60 * 1000),
+            resolved: false,
+          },
+          {
+            id: "2",
+            type: "medium",
+            title: "Data Access Pattern",
+            description: "Unusual data access pattern detected for user account",
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+            resolved: false,
+          },
+        ])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
+    setAnchorEl(event.currentTarget)
+  }
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+    setAnchorEl(null)
+  }
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+    logout()
+    navigate("/login")
+  }
 
-  const getActivityIcon = (type: RecentActivity['type']) => {
+  const getActivityIcon = (type: RecentActivity["type"]) => {
     switch (type) {
-      case 'screening_completed':
-        return <CheckCircle color="success" />;
-      case 'profile_flagged':
-        return <Warning color="error" />;
-      case 'candidate_added':
-        return <Person color="primary" />;
+      case "screening_completed":
+        return <CheckCircle color="success" />
+      case "profile_flagged":
+        return <Warning color="error" />
+      case "candidate_added":
+        return <Person color="primary" />
+      case "security_alert":
+        return <Security color="warning" />
+      case "ai_insight":
+        return <SmartToy color="info" />
+      case "bulk_operation":
+        return <Speed color="primary" />
       default:
-        return <Person />;
+        return <Person />
     }
-  };
+  }
 
   const getActivityText = (activity: RecentActivity) => {
-    switch (activity.type) {
-      case 'screening_completed':
-        return `Screening completed for ${activity.candidateName}`;
-      case 'profile_flagged':
-        return `Profile flagged for ${activity.candidateName}`;
-      case 'candidate_added':
-        return `New candidate added: ${activity.candidateName}`;
+    return activity.message
+  }
+
+  const getAlertSeverity = (type: SecurityAlert["type"]) => {
+    switch (type) {
+      case "high":
+        return "error"
+      case "medium":
+        return "warning"
+      case "low":
+        return "info"
       default:
-        return `Activity for ${activity.candidateName}`;
+        return "info"
     }
-  };
+  }
 
   const formatTimestamp = (timestamp: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    
+    const now = new Date()
+    const diff = now.getTime() - timestamp.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+
     if (hours < 1) {
-      const minutes = Math.floor(diff / (1000 * 60));
-      return `${minutes} minutes ago`;
+      const minutes = Math.floor(diff / (1000 * 60))
+      return `${minutes} minutes ago`
     } else if (hours < 24) {
-      return `${hours} hours ago`;
+      return `${hours} hours ago`
     } else {
-      const days = Math.floor(hours / 24);
-      return `${days} days ago`;
+      const days = Math.floor(hours / 24)
+      return `${days} days ago`
     }
-  };
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -171,28 +247,67 @@ const Dashboard: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             HR Screening Platform
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mr: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Shield color="inherit" />
+              <Box sx={{ textAlign: "right" }}>
+                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                  {stats.securityScore}%
+                </Typography>
+                <Typography variant="caption">Security Score</Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Settings />}
+              sx={{ color: "white", borderColor: "white" }}
+              onClick={() => navigate("/security")}
+            >
+              Security Center
+            </Button>
+            {user?.role === "ADMIN" && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AdminPanelSettings />}
+                sx={{ color: "white", borderColor: "white" }}
+                onClick={() => navigate("/admin")}
+              >
+                Admin Panel
+              </Button>
+            )}
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="body2">
               {user?.firstName} {user?.lastName}
             </Typography>
-            <IconButton
-              size="large"
-              onClick={handleMenuOpen}
-              color="inherit"
-            >
+            <IconButton size="large" onClick={handleMenuOpen} color="inherit">
               <AccountCircle />
             </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
               <MenuItem onClick={handleMenuClose}>
                 <ListItemIcon>
                   <Person fontSize="small" />
                 </ListItemIcon>
                 Profile
               </MenuItem>
+              {user?.role === "ADMIN" && (
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      handleMenuClose()
+                      navigate("/admin")
+                    }}
+                  >
+                    <ListItemIcon>
+                      <AdminPanelSettings fontSize="small" />
+                    </ListItemIcon>
+                    Admin Panel
+                  </MenuItem>
+                  <Divider />
+                </>
+              )}
               <Divider />
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
@@ -211,131 +326,202 @@ const Dashboard: React.FC = () => {
             Welcome back, {user?.firstName}!
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Here's an overview of your screening activities
+            AI-powered candidate evaluation and security monitoring
           </Typography>
         </Box>
 
         {isLoading && <LinearProgress sx={{ mb: 2 }} />}
 
-        {/* Stats Cards */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3, mb: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  <Group />
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.totalCandidates}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Total Candidates
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+        {securityAlerts.filter((alert) => !alert.resolved).length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Security Alerts
+            </Typography>
+            {securityAlerts
+              .filter((alert) => !alert.resolved)
+              .map((alert) => (
+                <Alert
+                  key={alert.id}
+                  severity={getAlertSeverity(alert.type) as any}
+                  sx={{ mb: 1 }}
+                  action={
+                    <Button color="inherit" size="small">
+                      Resolve
+                    </Button>
+                  }
+                >
+                  <AlertTitle>{alert.title}</AlertTitle>
+                  {alert.description}
+                </Alert>
+              ))}
+          </Box>
+        )}
 
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
-                  <PendingActions />
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.pendingScreenings}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Pending Screenings
-                  </Typography>
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "primary.main" }}>
+                    <Group />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.totalCandidates}
+                    </Typography>
+                    <Typography color="text.secondary">Total Candidates</Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Grid>
 
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <CheckCircle />
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.completedScreenings}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Completed
-                  </Typography>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "warning.main" }}>
+                    <PendingActions />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.pendingScreenings}
+                    </Typography>
+                    <Typography color="text.secondary">Pending Screenings</Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Grid>
 
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'error.main' }}>
-                  <Warning />
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" component="div">
-                    {stats.flaggedProfiles}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Flagged Profiles
-                  </Typography>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "success.main" }}>
+                    <CheckCircle />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.completedScreenings}
+                    </Typography>
+                    <Typography color="text.secondary">Completed</Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        {/* Content Section */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-          {/* Quick Actions */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "error.main" }}>
+                    <Warning />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.flaggedProfiles}
+                    </Typography>
+                    <Typography color="text.secondary">Flagged Profiles</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "info.main" }}>
+                    <SmartToy />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.aiInsights}
+                    </Typography>
+                    <Typography color="text.secondary">AI Insights</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "secondary.main" }}>
+                    <Speed />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.automatedScreenings}
+                    </Typography>
+                    <Typography color="text.secondary">Automated Screenings</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: stats.activeThreats > 0 ? "error.main" : "success.main" }}>
+                    <Security />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {stats.activeThreats}
+                    </Typography>
+                    <Typography color="text.secondary">Active Threats</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Quick Actions
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => navigate('/candidates/add')}
-              >
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
+              <Button fullWidth variant="contained" startIcon={<Add />} onClick={() => navigate("/candidates/add")}>
                 Add Candidate
               </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<Search />}
-                onClick={() => navigate('/candidates')}
-              >
+              <Button fullWidth variant="outlined" startIcon={<Search />} onClick={() => navigate("/candidates")}>
                 Search Candidates
               </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<Assessment />}
-                onClick={() => navigate('/reports')}
-              >
-                View Reports
+              <Button fullWidth variant="outlined" startIcon={<SmartToy />} onClick={() => navigate("/ai-insights")}>
+                AI Insights
               </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<TrendingUp />}
-                onClick={() => navigate('/analytics')}
-              >
+              <Button fullWidth variant="outlined" startIcon={<Speed />} onClick={() => navigate("/bulk-operations")}>
+                Bulk Operations
+              </Button>
+              <Button fullWidth variant="outlined" startIcon={<Assessment />} onClick={() => navigate("/analytics")}>
                 Analytics
               </Button>
+              <Button fullWidth variant="outlined" startIcon={<Security />} onClick={() => navigate("/security")}>
+                Security Center
+              </Button>
+              {user?.role === "ADMIN" && (
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<AdminPanelSettings />}
+                  onClick={() => navigate("/admin")}
+                >
+                  Admin Panel
+                </Button>
+              )}
             </Box>
           </Paper>
 
-          {/* Recent Activity */}
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Recent Activity
@@ -344,19 +530,21 @@ const Dashboard: React.FC = () => {
               {recentActivity.map((activity, index) => (
                 <React.Fragment key={activity.id}>
                   <ListItem>
-                    <ListItemIcon>
-                      {getActivityIcon(activity.type)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={getActivityText(activity)}
-                      secondary={formatTimestamp(activity.timestamp)}
-                    />
+                    <ListItemIcon>{getActivityIcon(activity.type)}</ListItemIcon>
+                    <ListItemText primary={getActivityText(activity)} secondary={formatTimestamp(activity.timestamp)} />
                     <Chip
                       label={activity.status}
                       size="small"
                       color={
-                        activity.status === 'completed' ? 'success' :
-                        activity.status === 'flagged' ? 'error' : 'default'
+                        activity.status === "success"
+                          ? "success"
+                          : activity.status === "warning"
+                            ? "warning"
+                            : activity.status === "info"
+                              ? "info"
+                              : activity.status === "flagged"
+                                ? "error"
+                                : "default"
                       }
                     />
                   </ListItem>
@@ -368,7 +556,7 @@ const Dashboard: React.FC = () => {
         </Box>
       </Container>
     </Box>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard

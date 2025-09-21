@@ -16,4 +16,3 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 COMMIT;
-

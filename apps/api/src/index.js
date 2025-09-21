@@ -1,127 +1,90 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const fs = require('fs');
-require('dotenv').config();
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(helmet());
-
-// Updated CORS configuration to allow your frontend
-app.use(cors({
-  origin: [
-    'https://app.waiz.cl',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:5173'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-app.use(morgan('combined'));
-app.use(express.json());
+const express = require("express")
+const cors = require("cors")
+const helmet = require("helmet")
+const rateLimit = require("express-rate-limit")
+require("dotenv").config()
 
 // Import routes
-try {
-  const authRoutes = require('./routes/auth');
-  const candidateRoutes = require('./routes/candidates');
-  const socialProfileRoutes = require('./routes/socialProfiles');
-  const screeningRoutes = require('./routes/screenings');
-  
-  app.use('/auth', authRoutes);
-  app.use('/candidates', candidateRoutes);
-  app.use('/social-profiles', socialProfileRoutes);
-  app.use('/screenings', screeningRoutes);
-  
-  console.log('All routes loaded successfully');
-} catch (error) {
-  console.log('Route loading error:', error);
-}
+const authRoutes = require("./routes/auth")
+const candidatesRoutes = require("./routes/candidates")
+const screeningsRoutes = require("./routes/screenings")
+const analyticsRoutes = require("./routes/analytics")
+const securityRoutes = require("./routes/security")
+const bulkRoutes = require("./routes/bulk")
+const usersRoutes = require("./routes/users")
 
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
+// Import middleware
+const authMiddleware = require("./middleware/auth")
+
+const app = express()
+const PORT = process.env.PORT || 3000
+
+// Security middleware
+app.use(helmet())
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+)
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later.",
+})
+app.use("/api/", limiter)
+
+// Body parsing middleware
+app.use(express.json({ limit: "10mb" }))
+app.use(express.urlencoded({ extended: true, limit: "10mb" }))
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  });
-});
+    service: "HR Screening API",
+  })
+})
 
-app.get('/api/models', async (req, res) => {
-  try {
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    
-    const companyCount = await prisma.company.count();
-    const userCount = await prisma.user.count();
-    const candidateCount = await prisma.candidate.count();
-    const socialProfileCount = await prisma.socialProfile.count();
-    const screeningCount = await prisma.screening.count();
-    
-    res.json({
-      success: true,
-      tables: {
-        companies: companyCount,
-        users: userCount,
-        candidates: candidateCount,
-        socialProfiles: socialProfileCount,
-        screenings: screeningCount
-      },
-      message: 'Database schema is working'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+// API routes
+app.use("/api/auth", authRoutes)
+app.use("/api/candidates", authMiddleware, candidatesRoutes)
+app.use("/api/screenings", authMiddleware, screeningsRoutes)
+app.use("/api/analytics", authMiddleware, analyticsRoutes)
+app.use("/api/security", authMiddleware, securityRoutes)
+app.use("/api/bulk", authMiddleware, bulkRoutes)
+app.use("/api/users", authMiddleware, usersRoutes)
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'HR Screening API is running!',
-    version: '2.0.0',
-    endpoints: {
-      health: '/health',
-      models: '/api/models',
-      auth: {
-        register: 'POST /auth/register',
-        login: 'POST /auth/login'
-      },
-      candidates: {
-        list: 'GET /candidates',
-        create: 'POST /candidates',
-        get: 'GET /candidates/:id',
-        update: 'PUT /candidates/:id',
-        delete: 'DELETE /candidates/:id'
-      },
-      socialProfiles: {
-        getForCandidate: 'GET /social-profiles/candidate/:candidateId',
-        create: 'POST /social-profiles/candidate/:candidateId',
-        update: 'PUT /social-profiles/:profileId',
-        delete: 'DELETE /social-profiles/:profileId'
-      },
-      screenings: {
-        analyze: 'POST /screenings/candidate/:candidateId/analyze',
-        getForCandidate: 'GET /screenings/candidate/:candidateId',
-        getDetails: 'GET /screenings/:screeningId'
-      }
-    }
-  });
-});
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Error:", err)
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+  })
+})
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: { message: 'Route not found' }
-  });
-});
+// 404 handler
+app.use("*", (req, res) => {
+  res.status(404).json({ error: "Route not found" })
+})
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-});
+// Start server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 HR Screening API running on port ${PORT}`)
+  console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`)
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`)
+})
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully")
+  process.exit(0)
+})
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down gracefully")
+  process.exit(0)
+})

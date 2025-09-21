@@ -1,0 +1,511 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  AppBar,
+  Toolbar,
+  IconButton,
+  LinearProgress,
+  Tabs,
+  Tab,
+  Grid,
+  List,
+  ListItem,
+  Divider,
+} from "@mui/material"
+import { Brain, Speed, TrendingUp, Warning, Group, ArrowBack } from "@mui/icons-material"
+import { useNavigate } from "react-router-dom"
+
+interface AIMetrics {
+  totalAnalyses: number
+  averageProcessingTime: number
+  accuracyRate: number
+  confidenceLevel: number
+  modelsUsed: string[]
+  tokensProcessed: number
+}
+
+interface RecentAnalysis {
+  id: string
+  candidateName: string
+  position: string
+  riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+  professionalScore: number
+  platforms: string[]
+  processingTime: number
+  confidenceLevel: number
+  completedAt: string
+}
+
+interface AICapability {
+  title: string
+  description: string
+  accuracy: number
+  icon: React.ComponentType
+}
+
+const aiMetrics: AIMetrics = {
+  totalAnalyses: 1247,
+  averageProcessingTime: 2.1,
+  accuracyRate: 94.2,
+  confidenceLevel: 87.5,
+  modelsUsed: ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile"],
+  tokensProcessed: 2847392,
+}
+
+const recentAnalyses: RecentAnalysis[] = [
+  {
+    id: "1",
+    candidateName: "Sarah Johnson",
+    position: "Marketing Manager",
+    riskLevel: "LOW",
+    professionalScore: 89,
+    platforms: ["LinkedIn", "Twitter"],
+    processingTime: 1.8,
+    confidenceLevel: 92,
+    completedAt: "2 hours ago",
+  },
+  {
+    id: "2",
+    candidateName: "Michael Chen",
+    position: "Software Engineer",
+    riskLevel: "MEDIUM",
+    professionalScore: 76,
+    platforms: ["LinkedIn", "GitHub", "Twitter"],
+    processingTime: 2.4,
+    confidenceLevel: 88,
+    completedAt: "4 hours ago",
+  },
+  {
+    id: "3",
+    candidateName: "Emily Rodriguez",
+    position: "Data Analyst",
+    riskLevel: "LOW",
+    professionalScore: 94,
+    platforms: ["LinkedIn", "GitHub"],
+    processingTime: 1.6,
+    confidenceLevel: 95,
+    completedAt: "6 hours ago",
+  },
+]
+
+const aiCapabilities: AICapability[] = [
+  {
+    title: "Content Classification",
+    description: "Advanced categorization of professional vs personal content",
+    accuracy: 96,
+    icon: TrendingUp,
+  },
+  {
+    title: "Sentiment Analysis",
+    description: "Emotional tone and communication style assessment",
+    accuracy: 91,
+    icon: Brain,
+  },
+  {
+    title: "Risk Assessment",
+    description: "Intelligent identification of potential red flags",
+    accuracy: 89,
+    icon: Warning,
+  },
+  {
+    title: "Professional Scoring",
+    description: "Comprehensive evaluation of professional presence",
+    accuracy: 94,
+    icon: TrendingUp,
+  },
+]
+
+const AIInsightsPage: React.FC = () => {
+  const navigate = useNavigate()
+  const [tabValue, setTabValue] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case "LOW":
+        return "success"
+      case "MEDIUM":
+        return "warning"
+      case "HIGH":
+      case "CRITICAL":
+        return "error"
+      default:
+        return "default"
+    }
+  }
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue)
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" color="inherit" onClick={() => navigate("/dashboard")} sx={{ mr: 2 }}>
+            <ArrowBack />
+          </IconButton>
+          <Brain sx={{ mr: 2 }} />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            AI Insights Dashboard
+          </Typography>
+          <Chip
+            icon={<Speed />}
+            label="Groq Powered"
+            variant="outlined"
+            sx={{ color: "white", borderColor: "white" }}
+          />
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        {isLoading && <LinearProgress sx={{ mb: 2 }} />}
+
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Advanced AI-powered screening analysis with Groq
+        </Typography>
+
+        {/* AI Performance Metrics */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Group color="primary" />
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {aiMetrics.totalAnalyses.toLocaleString()}
+                    </Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Total Analyses
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Powered by Groq
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Speed sx={{ color: "green" }} />
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {aiMetrics.averageProcessingTime}s
+                    </Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Avg Processing Time
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "green" }}>
+                      Lightning fast
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <TrendingUp color="info" />
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {aiMetrics.accuracyRate}%
+                    </Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Accuracy Rate
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      AI prediction accuracy
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Brain sx={{ color: "purple" }} />
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {aiMetrics.confidenceLevel}%
+                    </Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Confidence Level
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Average confidence
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <Paper sx={{ width: "100%" }}>
+          <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: "divider" }}>
+            <Tab label="AI Capabilities" />
+            <Tab label="Recent Analyses" />
+            <Tab label="Model Performance" />
+          </Tabs>
+
+          {/* AI Capabilities Tab */}
+          {tabValue === 0 && (
+            <Box sx={{ p: 3 }}>
+              <Grid container spacing={3}>
+                {aiCapabilities.map((capability, index) => (
+                  <Grid item xs={12} md={6} key={index}>
+                    <Card>
+                      <CardContent>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                          <capability.icon color="primary" />
+                          <Typography variant="h6">{capability.title}</Typography>
+                        </Box>
+                        <Typography color="text.secondary" sx={{ mb: 2 }}>
+                          {capability.description}
+                        </Typography>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                          <Typography variant="body2">Accuracy</Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {capability.accuracy}%
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={capability.accuracy}
+                          sx={{ height: 8, borderRadius: 4 }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          {/* Recent Analyses Tab */}
+          {tabValue === 1 && (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Recent AI Analyses
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 3 }}>
+                Latest screening results powered by Groq AI
+              </Typography>
+              <List>
+                {recentAnalyses.map((analysis, index) => (
+                  <React.Fragment key={analysis.id}>
+                    <ListItem sx={{ flexDirection: "column", alignItems: "stretch", py: 2 }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="medium">
+                            {analysis.candidateName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {analysis.position}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Chip
+                            label={analysis.riskLevel}
+                            color={getRiskColor(analysis.riskLevel) as any}
+                            size="small"
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            {analysis.completedAt}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="caption" color="text.secondary">
+                            Professional Score
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {analysis.professionalScore}/100
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="caption" color="text.secondary">
+                            Processing Time
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {analysis.processingTime}s
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="caption" color="text.secondary">
+                            Confidence
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {analysis.confidenceLevel}%
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="caption" color="text.secondary">
+                            Platforms
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {analysis.platforms.join(", ")}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </ListItem>
+                    {index < recentAnalyses.length - 1 && <Divider />}
+                  </React.Fragment>
+                ))}
+              </List>
+            </Box>
+          )}
+
+          {/* Model Performance Tab */}
+          {tabValue === 2 && (
+            <Box sx={{ p: 3 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Groq Models in Use
+                      </Typography>
+                      <Typography color="text.secondary" sx={{ mb: 3 }}>
+                        AI models powering our screening analysis
+                      </Typography>
+                      <Box sx={{ space: 2 }}>
+                        <Paper sx={{ p: 2, mb: 2, border: 1, borderColor: "divider" }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="medium">
+                              llama-3.3-70b-versatile
+                            </Typography>
+                            <Chip label="Primary" color="primary" size="small" />
+                          </Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Fast, accurate analysis for real-time screening
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary">
+                                Speed
+                              </Typography>
+                              <Typography variant="body2" fontWeight="medium">
+                                Ultra Fast
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary">
+                                Accuracy
+                              </Typography>
+                              <Typography variant="body2" fontWeight="medium">
+                                94.2%
+                              </Typography>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+
+                        <Paper sx={{ p: 2, border: 1, borderColor: "divider" }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="medium">
+                              llama-3.1-70b-versatile
+                            </Typography>
+                            <Chip label="Reports" color="secondary" size="small" />
+                          </Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Detailed analysis for comprehensive reports
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary">
+                                Detail Level
+                              </Typography>
+                              <Typography variant="body2" fontWeight="medium">
+                                High
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary">
+                                Context
+                              </Typography>
+                              <Typography variant="body2" fontWeight="medium">
+                                Extended
+                              </Typography>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Token Usage Statistics
+                      </Typography>
+                      <Typography color="text.secondary" sx={{ mb: 3 }}>
+                        AI processing efficiency metrics
+                      </Typography>
+                      <Box sx={{ space: 2 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Tokens Processed
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {aiMetrics.tokensProcessed.toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Avg Tokens per Analysis
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            2,284
+                          </Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Processing Efficiency
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium" sx={{ color: "success.main" }}>
+                            Excellent
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </Paper>
+      </Container>
+    </Box>
+  )
+}
+
+export default AIInsightsPage

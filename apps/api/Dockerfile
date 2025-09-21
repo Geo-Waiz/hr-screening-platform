@@ -5,28 +5,15 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install only production dependencies
+# Install dependencies
 RUN npm ci --only=production
-
-# Install TypeScript for building
-RUN npm install -g typescript
 
 # Copy source code
 COPY . .
 
-# Install dev dependencies temporarily for building
-RUN npm install
-
-# Build the application
-RUN npm run build
-
 # Generate Prisma client
 RUN npx prisma generate
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
-
 EXPOSE 3000
 
-# Run the compiled JavaScript
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "if [ -z \"$JWT_SECRET\" ]; then echo 'JWT_SECRET environment variable is required' && exit 1; fi && npx prisma migrate deploy && node src/index.js"]
