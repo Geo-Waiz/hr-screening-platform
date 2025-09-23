@@ -281,7 +281,7 @@ const AIInsightsPage: React.FC = () => {
                     <Card>
                       <CardContent>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                          <capability.icon />
+                          <capability.icon color="primary" />
                           <Typography variant="h6">{capability.title}</Typography>
                         </Box>
                         <Typography color="text.secondary" sx={{ mb: 2 }}>

@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  status    CompanyStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  users     User[]
+  candidates Candidate[]
+  
+  @@map("companies")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  notifications Notification[]
+  notificationPreferences NotificationPreference?
+  
+  @@map("users")
+}
+
+model Candidate {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  position    String
+  status      CandidateStatus @default(PENDING)
+  consentGiven Boolean @default(false)
+  consentDate DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  screenings  Screening[]
+  socialProfiles SocialProfile[]
+  
+  notifications Notification[]
+  
+  @@map("candidates")
+}
+
+model SocialProfile {
+  id        String   @id @default(cuid())
+  platform  SocialPlatform
+  profileUrl String
+  username  String?
+  isActive  Boolean @default(true)
+  lastScanned DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  @@unique([candidateId, platform])
+  @@map("social_profiles")
+}
+
+model Screening {
+  id          String   @id @default(cuid())
+  status      ScreeningStatus @default(PENDING)
+  riskLevel   RiskLevel?
+  overallScore Int?
+  summary     String?
+  findings    Json?
+  aiAnalysis  Json?
+  humanReview String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+  reviewedAt  DateTime?
+  
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  notifications Notification[]
+  
+  @@map("screenings")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType
+  priority    NotificationPriority @default(MEDIUM)
+  isRead      Boolean  @default(false)
+  isEmailSent Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  candidateId String?
+  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  screeningId String?
+  screening   Screening? @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  emailNotifications    Boolean  @default(true)
+  pushNotifications     Boolean  @default(true)
+  screeningCompleted    Boolean  @default(true)
+  candidateAdded        Boolean  @default(true)
+  riskAlerts           Boolean  @default(true)
+  systemAlerts         Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notification_preferences")
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  RECRUITER
+  USER
+}
+
+enum CandidateStatus {
+  PENDING
+  SCREENING
+  COMPLETED
+  REJECTED
+  HIRED
+  ARCHIVED
+}
+
+enum ScreeningStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  REQUIRES_REVIEW
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SocialPlatform {
+  LINKEDIN
+  TWITTER
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+  GITHUB
+  OTHER
+}
+
+enum NotificationType {
+  SCREENING_COMPLETED
+  SCREENING_FAILED
+  CANDIDATE_ADDED
+  RISK_ALERT
+  SYSTEM_ALERT
+  MANUAL_REVIEW_REQUIRED
+  BULK_OPERATION_COMPLETED
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}

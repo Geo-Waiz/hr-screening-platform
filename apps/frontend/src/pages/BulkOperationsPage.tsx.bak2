@@ -1,0 +1,475 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Menu,
+  MenuItem,
+  LinearProgress,
+  Grid2 as Grid,
+  Button,
+  Avatar,
+  ListItemIcon,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+} from "@mui/material"
+import {
+  AccountCircle,
+  Logout,
+  Person,
+  ArrowBack,
+  Speed,
+  Upload,
+  Download,
+  Delete,
+  CheckCircle,
+  Warning,
+  Pending,
+  PlayArrow,
+  Stop,
+  Refresh,
+} from "@mui/icons-material"
+import { useAuth } from "../contexts/AuthContext"
+import { useNavigate } from "react-router-dom"
+
+interface BulkOperation {
+  id: string
+  type: "screening" | "export" | "import" | "delete" | "update"
+  name: string
+  status: "pending" | "running" | "completed" | "failed" | "cancelled"
+  progress: number
+  totalItems: number
+  processedItems: number
+  createdAt: Date
+  completedAt?: Date
+  errorMessage?: string
+}
+
+const BulkOperationsPage: React.FC = () => {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [operations, setOperations] = useState<BulkOperation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [newOperationDialog, setNewOperationDialog] = useState(false)
+  const [newOperation, setNewOperation] = useState({
+    type: "screening" as BulkOperation["type"],
+    name: "",
+    file: null as File | null,
+  })
+
+  useEffect(() => {
+    const fetchOperations = async () => {
+      setIsLoading(true)
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        setOperations([
+          {
+            id: "1",
+            type: "screening",
+            name: "Q4 Candidate Batch Screening",
+            status: "running",
+            progress: 65,
+            totalItems: 150,
+            processedItems: 98,
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          },
+          {
+            id: "2",
+            type: "export",
+            name: "Monthly Screening Report Export",
+            status: "completed",
+            progress: 100,
+            totalItems: 1247,
+            processedItems: 1247,
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            completedAt: new Date(Date.now() - 23 * 60 * 60 * 1000),
+          },
+          {
+            id: "3",
+            type: "import",
+            name: "New Candidate Data Import",
+            status: "failed",
+            progress: 45,
+            totalItems: 200,
+            processedItems: 90,
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+            errorMessage: "Invalid data format in row 91",
+          },
+          {
+            id: "4",
+            type: "delete",
+            name: "Cleanup Old Candidate Records",
+            status: "pending",
+            progress: 0,
+            totalItems: 500,
+            processedItems: 0,
+            createdAt: new Date(Date.now() - 30 * 60 * 1000),
+          },
+        ])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchOperations()
+  }, [])
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login")
+  }
+
+  const getOperationIcon = (type: BulkOperation["type"]) => {
+    switch (type) {
+      case "screening":
+        return <Speed />
+      case "export":
+        return <Download />
+      case "import":
+        return <Upload />
+      case "delete":
+        return <Delete />
+      case "update":
+        return <Refresh />
+      default:
+        return <Speed />
+    }
+  }
+
+  const getStatusIcon = (status: BulkOperation["status"]) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle color="success" />
+      case "running":
+        return <PlayArrow color="primary" />
+      case "failed":
+        return <Warning color="error" />
+      case "pending":
+        return <Pending color="warning" />
+      case "cancelled":
+        return <Stop color="disabled" />
+      default:
+        return <Pending />
+    }
+  }
+
+  const getStatusColor = (status: BulkOperation["status"]) => {
+    switch (status) {
+      case "completed":
+        return "success"
+      case "running":
+        return "primary"
+      case "failed":
+        return "error"
+      case "pending":
+        return "warning"
+      case "cancelled":
+        return "default"
+      default:
+        return "default"
+    }
+  }
+
+  const formatTimestamp = (timestamp: Date) => {
+    const now = new Date()
+    const diff = now.getTime() - timestamp.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+
+    if (hours < 1) {
+      const minutes = Math.floor(diff / (1000 * 60))
+      return `${minutes} minutes ago`
+    } else if (hours < 24) {
+      return `${hours} hours ago`
+    } else {
+      const days = Math.floor(hours / 24)
+      return `${days} days ago`
+    }
+  }
+
+  const handleCreateOperation = () => {
+    // Create new bulk operation
+    const operation: BulkOperation = {
+      id: Date.now().toString(),
+      type: newOperation.type,
+      name: newOperation.name,
+      status: "pending",
+      progress: 0,
+      totalItems: 0,
+      processedItems: 0,
+      createdAt: new Date(),
+    }
+
+    setOperations((prev) => [operation, ...prev])
+    setNewOperationDialog(false)
+    setNewOperation({ type: "screening", name: "", file: null })
+  }
+
+  const runningOperations = operations.filter((op) => op.status === "running").length
+  const completedOperations = operations.filter((op) => op.status === "completed").length
+  const failedOperations = operations.filter((op) => op.status === "failed").length
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" color="inherit" onClick={() => navigate("/dashboard")} sx={{ mr: 2 }}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Bulk Operations
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2">
+              {user?.firstName} {user?.lastName}
+            </Typography>
+            <IconButton size="large" onClick={handleMenuOpen} color="inherit">
+              <AccountCircle />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+              <MenuItem onClick={handleMenuClose}>
+                <ListItemIcon>
+                  <Person fontSize="small" />
+                </ListItemIcon>
+                Profile
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              Bulk Operations
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Manage large-scale data processing and screening operations
+            </Typography>
+          </Box>
+          <Button variant="contained" startIcon={<PlayArrow />} onClick={() => setNewOperationDialog(true)}>
+            New Operation
+          </Button>
+        </Box>
+
+        {isLoading && <LinearProgress sx={{ mb: 2 }} />}
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "primary.main" }}>
+                    <PlayArrow />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {runningOperations}
+                    </Typography>
+                    <Typography color="text.secondary">Running</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "success.main" }}>
+                    <CheckCircle />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {completedOperations}
+                    </Typography>
+                    <Typography color="text.secondary">Completed</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "error.main" }}>
+                    <Warning />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" component="div">
+                      {failedOperations}
+                    </Typography>
+                    <Typography color="text.secondary">Failed</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Recent Operations
+          </Typography>
+          <List>
+            {operations.map((operation, index) => (
+              <React.Fragment key={operation.id}>
+                <ListItem>
+                  <ListItemIcon>
+                    <Avatar sx={{ bgcolor: "grey.100" }}>{getOperationIcon(operation.type)}</Avatar>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Typography variant="subtitle1">{operation.name}</Typography>
+                        <Chip
+                          label={operation.status}
+                          size="small"
+                          color={getStatusColor(operation.status) as any}
+                          icon={getStatusIcon(operation.status)}
+                        />
+                      </Box>
+                    }
+                    secondary={
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {operation.processedItems} / {operation.totalItems} items •{" "}
+                          {formatTimestamp(operation.createdAt)}
+                        </Typography>
+                        {operation.status === "running" && (
+                          <LinearProgress
+                            variant="determinate"
+                            value={operation.progress}
+                            sx={{ mt: 1, width: "100%" }}
+                          />
+                        )}
+                        {operation.errorMessage && (
+                          <Alert severity="error" sx={{ mt: 1 }}>
+                            {operation.errorMessage}
+                          </Alert>
+                        )}
+                      </Box>
+                    }
+                  />
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    {operation.status === "running" && (
+                      <Button size="small" startIcon={<Stop />}>
+                        Cancel
+                      </Button>
+                    )}
+                    {operation.status === "completed" && (
+                      <Button size="small" startIcon={<Download />}>
+                        Download
+                      </Button>
+                    )}
+                    {operation.status === "failed" && (
+                      <Button size="small" startIcon={<Refresh />}>
+                        Retry
+                      </Button>
+                    )}
+                  </Box>
+                </ListItem>
+                {index < operations.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </List>
+        </Paper>
+      </Container>
+
+      <Dialog open={newOperationDialog} onClose={() => setNewOperationDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Bulk Operation</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "grid", gap: 3, mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Operation Type</InputLabel>
+              <Select
+                value={newOperation.type}
+                label="Operation Type"
+                onChange={(e) =>
+                  setNewOperation((prev) => ({ ...prev, type: e.target.value as BulkOperation["type"] }))
+                }
+              >
+                <MenuItem value="screening">Bulk Screening</MenuItem>
+                <MenuItem value="export">Data Export</MenuItem>
+                <MenuItem value="import">Data Import</MenuItem>
+                <MenuItem value="update">Bulk Update</MenuItem>
+                <MenuItem value="delete">Bulk Delete</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Operation Name"
+              value={newOperation.name}
+              onChange={(e) => setNewOperation((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter a descriptive name for this operation"
+            />
+
+            <Button variant="outlined" component="label" startIcon={<Upload />} fullWidth>
+              Upload File (Optional)
+              <input
+                type="file"
+                hidden
+                onChange={(e) => setNewOperation((prev) => ({ ...prev, file: e.target.files?.[0] || null }))}
+              />
+            </Button>
+
+            {newOperation.file && (
+              <Typography variant="body2" color="text.secondary">
+                Selected: {newOperation.file.name}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewOperationDialog(false)}>Cancel</Button>
+          <Button onClick={handleCreateOperation} variant="contained" disabled={!newOperation.name}>
+            Create Operation
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
+
+export default BulkOperationsPage

@@ -5,7 +5,7 @@ const sgMail = require("@sendgrid/mail")
 const prisma = new PrismaClient()
 
 // Configure email service
-const emailTransporter = nodemailer.createTransporter({
+const emailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: process.env.SMTP_PORT || 587,
   secure: false,

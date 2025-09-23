@@ -1,0 +1,448 @@
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Menu,
+  MenuItem,
+  LinearProgress,
+  Grid2 as Grid,
+  Avatar,
+  ListItemIcon,
+  Divider,
+  Button,
+  Alert,
+  AlertTitle,
+  List,
+  ListItem,
+  Switch,
+  FormControlLabel,
+} from "@mui/material"
+import {
+  AccountCircle,
+  Logout,
+  Person,
+  ArrowBack,
+  Shield,
+  Warning,
+  CheckCircle,
+  Block,
+  VpnKey,
+  Visibility,
+  Settings,
+  Refresh,
+} from "@mui/icons-material"
+import { useAuth } from "../contexts/AuthContext"
+import { useNavigate } from "react-router-dom"
+
+interface SecurityMetrics {
+  overallScore: number
+  activeThreats: number
+  blockedAttempts: number
+  secureConnections: number
+  lastScan: Date
+}
+
+interface SecurityAlert {
+  id: string
+  type: "critical" | "high" | "medium" | "low"
+  title: string
+  description: string
+  timestamp: Date
+  resolved: boolean
+  source: string
+}
+
+interface SecuritySettings {
+  twoFactorAuth: boolean
+  loginNotifications: boolean
+  suspiciousActivityBlocking: boolean
+  dataEncryption: boolean
+  auditLogging: boolean
+}
+
+const SecurityPage: React.FC = () => {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [metrics, setMetrics] = useState<SecurityMetrics | null>(null)
+  const [alerts, setAlerts] = useState<SecurityAlert[]>([])
+  const [settings, setSettings] = useState<SecuritySettings>({
+    twoFactorAuth: true,
+    loginNotifications: true,
+    suspiciousActivityBlocking: true,
+    dataEncryption: true,
+    auditLogging: true,
+  })
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSecurityData = async () => {
+      setIsLoading(true)
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        setMetrics({
+          overallScore: 85,
+          activeThreats: 2,
+          blockedAttempts: 47,
+          secureConnections: 1247,
+          lastScan: new Date(Date.now() - 15 * 60 * 1000),
+        })
+
+        setAlerts([
+          {
+            id: "1",
+            type: "critical",
+            title: "Multiple Failed Login Attempts",
+            description: "15 failed login attempts detected from IP 192.168.1.100 in the last hour",
+            timestamp: new Date(Date.now() - 30 * 60 * 1000),
+            resolved: false,
+            source: "Authentication System",
+          },
+          {
+            id: "2",
+            type: "high",
+            title: "Unusual Data Access Pattern",
+            description: "User account accessed sensitive data outside normal hours",
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+            resolved: false,
+            source: "Data Access Monitor",
+          },
+          {
+            id: "3",
+            type: "medium",
+            title: "Outdated Security Certificate",
+            description: "SSL certificate expires in 7 days",
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+            resolved: true,
+            source: "Certificate Monitor",
+          },
+        ])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSecurityData()
+  }, [])
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login")
+  }
+
+  const handleSettingChange = (setting: keyof SecuritySettings) => {
+    setSettings((prev) => ({
+      ...prev,
+      [setting]: !prev[setting],
+    }))
+  }
+
+  const getAlertSeverity = (type: SecurityAlert["type"]) => {
+    switch (type) {
+      case "critical":
+        return "error"
+      case "high":
+        return "error"
+      case "medium":
+        return "warning"
+      case "low":
+        return "info"
+      default:
+        return "info"
+    }
+  }
+
+  const formatTimestamp = (timestamp: Date) => {
+    const now = new Date()
+    const diff = now.getTime() - timestamp.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+
+    if (hours < 1) {
+      const minutes = Math.floor(diff / (1000 * 60))
+      return `${minutes} minutes ago`
+    } else if (hours < 24) {
+      return `${hours} hours ago`
+    } else {
+      const days = Math.floor(hours / 24)
+      return `${days} days ago`
+    }
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" color="inherit" onClick={() => navigate("/dashboard")} sx={{ mr: 2 }}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Security Center
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2">
+              {user?.firstName} {user?.lastName}
+            </Typography>
+            <IconButton size="large" onClick={handleMenuOpen} color="inherit">
+              <AccountCircle />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+              <MenuItem onClick={handleMenuClose}>
+                <ListItemIcon>
+                  <Person fontSize="small" />
+                </ListItemIcon>
+                Profile
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" gutterBottom>
+            Security Center
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Monitor and manage your platform's security posture
+          </Typography>
+        </Box>
+
+        {isLoading && <LinearProgress sx={{ mb: 2 }} />}
+
+        {metrics && (
+          <>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: metrics.overallScore >= 80 ? "success.main" : "warning.main" }}>
+                        <Shield />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {metrics.overallScore}%
+                        </Typography>
+                        <Typography color="text.secondary">Security Score</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: metrics.activeThreats > 0 ? "error.main" : "success.main" }}>
+                        <Warning />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {metrics.activeThreats}
+                        </Typography>
+                        <Typography color="text.secondary">Active Threats</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: "error.main" }}>
+                        <Block />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {metrics.blockedAttempts}
+                        </Typography>
+                        <Typography color="text.secondary">Blocked Attempts</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: "success.main" }}>
+                        <CheckCircle />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {metrics.secureConnections}
+                        </Typography>
+                        <Typography color="text.secondary">Secure Connections</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} md={8}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                    <Typography variant="h6">Security Alerts</Typography>
+                    <Button startIcon={<Refresh />} size="small">
+                      Refresh
+                    </Button>
+                  </Box>
+
+                  {alerts.filter((alert) => !alert.resolved).length === 0 ? (
+                    <Alert severity="success">
+                      <AlertTitle>All Clear</AlertTitle>
+                      No active security alerts at this time.
+                    </Alert>
+                  ) : (
+                    alerts
+                      .filter((alert) => !alert.resolved)
+                      .map((alert) => (
+                        <Alert
+                          key={alert.id}
+                          severity={getAlertSeverity(alert.type) as any}
+                          sx={{ mb: 2 }}
+                          action={
+                            <Button color="inherit" size="small">
+                              Resolve
+                            </Button>
+                          }
+                        >
+                          <AlertTitle>{alert.title}</AlertTitle>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {alert.description}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {alert.source} • {formatTimestamp(alert.timestamp)}
+                          </Typography>
+                        </Alert>
+                      ))
+                  )}
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Security Settings
+                  </Typography>
+                  <List>
+                    <ListItem>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={settings.twoFactorAuth}
+                            onChange={() => handleSettingChange("twoFactorAuth")}
+                          />
+                        }
+                        label="Two-Factor Authentication"
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={settings.loginNotifications}
+                            onChange={() => handleSettingChange("loginNotifications")}
+                          />
+                        }
+                        label="Login Notifications"
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={settings.suspiciousActivityBlocking}
+                            onChange={() => handleSettingChange("suspiciousActivityBlocking")}
+                          />
+                        }
+                        label="Block Suspicious Activity"
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={settings.dataEncryption}
+                            onChange={() => handleSettingChange("dataEncryption")}
+                          />
+                        }
+                        label="Data Encryption"
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={settings.auditLogging}
+                            onChange={() => handleSettingChange("auditLogging")}
+                          />
+                        }
+                        label="Audit Logging"
+                      />
+                    </ListItem>
+                  </List>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Security Actions
+              </Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
+                <Button variant="outlined" startIcon={<Refresh />}>
+                  Run Security Scan
+                </Button>
+                <Button variant="outlined" startIcon={<VpnKey />}>
+                  Rotate API Keys
+                </Button>
+                <Button variant="outlined" startIcon={<Visibility />}>
+                  View Audit Logs
+                </Button>
+                <Button variant="outlined" startIcon={<Settings />}>
+                  Configure Firewall
+                </Button>
+              </Box>
+            </Paper>
+          </>
+        )}
+      </Container>
+    </Box>
+  )
+}
+
+export default SecurityPage

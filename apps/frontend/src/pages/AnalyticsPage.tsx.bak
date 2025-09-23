@@ -1,0 +1,333 @@
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Menu,
+  MenuItem,
+  LinearProgress,
+  Grid,
+  Chip,
+  Avatar,
+  ListItemIcon,
+  Divider,
+  Button,
+} from "@mui/material"
+import {
+  AccountCircle,
+  Logout,
+  Person,
+  ArrowBack,
+  TrendingUp,
+  Assessment,
+  Speed,
+  SmartToy,
+  CheckCircle,
+  Warning,
+  Security,
+} from "@mui/icons-material"
+import { useAuth } from "../contexts/AuthContext"
+import { useNavigate } from "react-router-dom"
+
+interface AnalyticsData {
+  screeningTrends: {
+    month: string
+    completed: number
+    flagged: number
+    pending: number
+  }[]
+  performanceMetrics: {
+    averageProcessingTime: number
+    accuracyRate: number
+    falsePositiveRate: number
+    throughput: number
+  }
+  aiInsights: {
+    totalInsights: number
+    highPriorityInsights: number
+    automationRate: number
+    predictionAccuracy: number
+  }
+}
+
+const AnalyticsPage: React.FC = () => {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      setIsLoading(true)
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        setAnalytics({
+          screeningTrends: [
+            { month: "Jan", completed: 120, flagged: 8, pending: 5 },
+            { month: "Feb", completed: 145, flagged: 12, pending: 3 },
+            { month: "Mar", completed: 180, flagged: 15, pending: 7 },
+            { month: "Apr", completed: 165, flagged: 9, pending: 4 },
+            { month: "May", completed: 200, flagged: 18, pending: 6 },
+            { month: "Jun", completed: 220, flagged: 14, pending: 8 },
+          ],
+          performanceMetrics: {
+            averageProcessingTime: 2.3,
+            accuracyRate: 94.5,
+            falsePositiveRate: 3.2,
+            throughput: 450,
+          },
+          aiInsights: {
+            totalInsights: 1247,
+            highPriorityInsights: 89,
+            automationRate: 87.3,
+            predictionAccuracy: 92.1,
+          },
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAnalytics()
+  }, [])
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login")
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" color="inherit" onClick={() => navigate("/dashboard")} sx={{ mr: 2 }}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Analytics Dashboard
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2">
+              {user?.firstName} {user?.lastName}
+            </Typography>
+            <IconButton size="large" onClick={handleMenuOpen} color="inherit">
+              <AccountCircle />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+              <MenuItem onClick={handleMenuClose}>
+                <ListItemIcon>
+                  <Person fontSize="small" />
+                </ListItemIcon>
+                Profile
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" gutterBottom>
+            Analytics & Insights
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Comprehensive performance metrics and screening analytics
+          </Typography>
+        </Box>
+
+        {isLoading && <LinearProgress sx={{ mb: 2 }} />}
+
+        {analytics && (
+          <>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: "primary.main" }}>
+                        <Speed />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {analytics.performanceMetrics.averageProcessingTime}s
+                        </Typography>
+                        <Typography color="text.secondary">Avg Processing Time</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: "success.main" }}>
+                        <CheckCircle />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {analytics.performanceMetrics.accuracyRate}%
+                        </Typography>
+                        <Typography color="text.secondary">Accuracy Rate</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: "warning.main" }}>
+                        <Warning />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {analytics.performanceMetrics.falsePositiveRate}%
+                        </Typography>
+                        <Typography color="text.secondary">False Positive Rate</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar sx={{ bgcolor: "info.main" }}>
+                        <TrendingUp />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h4" component="div">
+                          {analytics.performanceMetrics.throughput}
+                        </Typography>
+                        <Typography color="text.secondary">Monthly Throughput</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    AI Performance Metrics
+                  </Typography>
+                  <Box sx={{ display: "grid", gap: 3 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <SmartToy color="primary" />
+                        <Typography>Total AI Insights</Typography>
+                      </Box>
+                      <Chip label={analytics.aiInsights.totalInsights} color="primary" />
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Warning color="warning" />
+                        <Typography>High Priority Insights</Typography>
+                      </Box>
+                      <Chip label={analytics.aiInsights.highPriorityInsights} color="warning" />
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Speed color="success" />
+                        <Typography>Automation Rate</Typography>
+                      </Box>
+                      <Chip label={`${analytics.aiInsights.automationRate}%`} color="success" />
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Assessment color="info" />
+                        <Typography>Prediction Accuracy</Typography>
+                      </Box>
+                      <Chip label={`${analytics.aiInsights.predictionAccuracy}%`} color="info" />
+                    </Box>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Screening Trends (Last 6 Months)
+                  </Typography>
+                  <Box sx={{ display: "grid", gap: 2 }}>
+                    {analytics.screeningTrends.map((trend) => (
+                      <Box
+                        key={trend.month}
+                        sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <Typography variant="body2" sx={{ minWidth: 40 }}>
+                          {trend.month}
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 1, flex: 1, justifyContent: "flex-end" }}>
+                          <Chip size="small" label={`${trend.completed} completed`} color="success" />
+                          <Chip size="small" label={`${trend.flagged} flagged`} color="error" />
+                          <Chip size="small" label={`${trend.pending} pending`} color="warning" />
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Quick Actions
+              </Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
+                <Button variant="outlined" startIcon={<Assessment />}>
+                  Export Report
+                </Button>
+                <Button variant="outlined" startIcon={<TrendingUp />}>
+                  View Trends
+                </Button>
+                <Button variant="outlined" startIcon={<SmartToy />}>
+                  AI Insights
+                </Button>
+                <Button variant="outlined" startIcon={<Security />}>
+                  Security Analytics
+                </Button>
+              </Box>
+            </Paper>
+          </>
+        )}
+      </Container>
+    </Box>
+  )
+}
+
+export default AnalyticsPage
