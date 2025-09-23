@@ -117,7 +117,7 @@ const AdminPage: React.FC = () => {
     const fetchUsers = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch("https://api.waiz.cl/api/users", {
+        const response = await fetch("http://localhost:3000/api/users", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -212,7 +212,7 @@ const AdminPage: React.FC = () => {
   const handleToggleUserStatus = async () => {
     if (selectedUser) {
       try {
-        const response = await fetch(`https://api.waiz.cl/api/users/${selectedUser.id}/status`, {
+        const response = await fetch(`http://localhost:3000/api/users/${selectedUser.id}/status`, {
           method: "PATCH",
           headers: {
             Authorization: `Bearer ${token}`,

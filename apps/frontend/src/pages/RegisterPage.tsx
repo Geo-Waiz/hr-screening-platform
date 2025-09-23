@@ -50,16 +50,26 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    console.log('📝 Form submitted with data:', { 
+      ...formData, 
+      password: '[HIDDEN]', 
+      confirmPassword: '[HIDDEN]' 
+    });
 
     if (formData.password !== formData.confirmPassword) {
+      console.log('❌ Password mismatch!');
       setError('Passwords do not match');
       return;
     }
 
     if (formData.password.length < 8) {
+      console.log('❌ Password too short!');
       setError('Password must be at least 8 characters long');
       return;
     }
+
+    console.log('✅ Form validation passed, calling register...');
 
     setIsLoading(true);
 
@@ -248,6 +258,7 @@ const RegisterPage: React.FC = () => {
               sx={{ mt: 3, mb: 2, py: 1.5 }}
               disabled={isLoading}
               startIcon={isLoading ? <CircularProgress size={20} /> : null}
+              onClick={() => console.log('🖱️ Submit button clicked!')}
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
