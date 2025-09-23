@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://api.waiz.cl/auth/login', {
+      const response = await fetch('http://localhost:3000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -76,13 +76,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://api.waiz.cl/auth/register', {
+      console.log('🚀 Attempting registration with:', { ...userData, password: '[HIDDEN]' });
+      console.log('🌐 API URL:', 'http://localhost:3000/auth/register');
+      
+      const response = await fetch('http://localhost:3000/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
       
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+      
       const data = await response.json();
+      console.log('📦 Response data:', data);
       
       if (data.success) {
         const { user: newUser, token: accessToken } = data.data;
